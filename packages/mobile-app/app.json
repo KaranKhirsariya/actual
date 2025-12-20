@@ -1,0 +1,36 @@
+{
+  "expo": {
+    "name": "Actual Budget",
+    "slug": "actual-budget",
+    "version": "0.0.1",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#1e1e2e"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.actualbudget.mobile"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#1e1e2e"
+      },
+      "package": "com.actualbudget.mobile"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-sqlite",
+      "expo-file-system",
+      "expo-secure-store",
+      "expo-local-authentication"
+    ]
+  }
+}
