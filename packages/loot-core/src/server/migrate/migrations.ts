@@ -13,6 +13,9 @@ import { logger } from '../../platform/server/log';
 import * as sqlite from '../../platform/server/sqlite';
 import * as prefs from '../prefs';
 
+import { getMigrationNamesFromManifest } from './migration-manifest';
+import { sqlMigrations } from './sql-migrations';
+
 let MIGRATIONS_DIR = fs.migrationsPath;
 
 const javascriptMigrations = {
@@ -76,6 +79,13 @@ export async function getMigrationList(
   migrationsDir: string,
 ): Promise<string[]> {
   const files = await fs.listDir(migrationsDir);
+
+  // Fallback to bundled manifest when files aren't available (e.g., mobile)
+  if (files.length === 0) {
+    logger.info('Using bundled migration manifest (file listing unavailable)');
+    return getMigrationNamesFromManifest();
+  }
+
   return files
     .filter(name => name.match(/(\.sql|\.js)$/))
     .sort((m1, m2) => {
@@ -130,14 +140,35 @@ export async function applyMigration(
   name: string,
   migrationsDir: string,
 ): Promise<void> {
-  const code = await fs.readFile(fs.join(migrationsDir, name));
+  const migrationId = getMigrationId(name);
+
+  // Try to read from file system first, fall back to bundled content
+  let code: string | null = null;
+  try {
+    code = await fs.readFile(fs.join(migrationsDir, name));
+  } catch {
+    // File system read failed (e.g., mobile) - use bundled content
+    if (name.match(/\.js$/)) {
+      // JS migrations are bundled via imports, code not needed
+      code = null;
+    } else {
+      // Use bundled SQL content
+      const bundledSql = sqlMigrations[migrationId];
+      if (!bundledSql) {
+        throw new Error(`Missing bundled SQL for migration ${migrationId}`);
+      }
+      code = bundledSql;
+      logger.info(`Using bundled SQL for migration ${migrationId}`);
+    }
+  }
+
   if (name.match(/\.js$/)) {
-    await applyJavaScript(db, getMigrationId(name));
+    await applyJavaScript(db, migrationId);
   } else {
-    await applySql(db, code);
+    await applySql(db, code!);
   }
   await sqlite.runQuery(db, 'INSERT INTO __migrations__ (id) VALUES (?)', [
-    getMigrationId(name),
+    migrationId,
   ]);
 }
 
